@@ -1,8 +1,8 @@
 #include <cuda_runtime.h>
-#include <pybind11.h>
-#include <numpy.h>
-#include <stl.h>
-#include <chrono>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
+#include <pybind11/stl.h>
+    #include <chrono>
 #include <iostream>
 
 #define CUDA_HOST_ALLOC 1
@@ -145,11 +145,58 @@ __global__ void gpu_shared_matmul(float* a, float* b, float* c, int M, int N, in
 
 }
 
-void global_matmul(){
+void run_global_kernel(float* d_a, float* d_b, float* d_c, int M, int N, int K){
+    int BLOCK_SIZE = 16;
+    unsigned int grid_cols = (K + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    unsigned int grid_rows = (M + BLOCK_SIZE - 1) / BLOCK_SIZE;
+    dim3 dim_grid(grid_cols, grid_rows);
+    dim3 dim_block(BLOCK_SIZE, BLOCK_SIZE);
     
+    gpu_global_matmul<<<dim_grid, dim_block>>>(d_a, d_b, d_c, M, N, K);
 }
 
-PYBIND11_MODULE(gpu_library, m)
-{
-  m.def("multiply_with_scalar", map_array<double>);
+namespace py = pybind11;
+
+void global_matmul(py::array_t<float> a, py::array_t<float> b, py::array_t<float> c, int M, int N, int K){
+    unsigned int sizeOfA = sizeof(float)*M*N;
+    unsigned int sizeOfB = sizeof(float)*N*K;
+    unsigned int sizeOfC = sizeof(float)*M*K;
+
+
+    float *d_a, *d_b, *d_c;
+    cudaMalloc((void **)&d_a, sizeOfA);
+    cudaMalloc((void **)&d_b, sizeOfB);
+    cudaMalloc((void **)&d_c, sizeOfC);
+    
+    pybind11::buffer_info h_buff_a = a.request();
+    pybind11::buffer_info h_buff_b = b.request();
+    pybind11::buffer_info h_buff_c = c.request();
+
+    float *h_a, *h_b, *h_c;
+    h_a = reinterpret_cast<float*>(h_buff_a.ptr);
+    h_b = reinterpret_cast<float*>(h_buff_b.ptr);
+    h_c = reinterpret_cast<float*>(h_buff_c.ptr);
+
+    cudaMemcpy(d_a, h_a, sizeOfA, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, h_b, sizeOfB, cudaMemcpyHostToDevice);
+
+    run_global_kernel(d_a, d_b, d_c, M, N, K);
+    //gpu_global_matmul<<<dim_grid, dim_block>>>(d_a, d_b, d_c, M, N, K);
+
+
+    cudaMemcpy(h_c, d_c, sizeOfC, cudaMemcpyDeviceToHost);
+
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
+}
+
+int add(int a, int b){
+    return a+b;
+}
+
+PYBIND11_MODULE(gpu_library, m){
+    m.doc() = "Plugin for doing GPU accelerated matrix multiply in python";
+    m.def("global_matrix_multiply", &global_matmul);
+    m.def("add", &add);
 }
