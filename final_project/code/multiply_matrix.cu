@@ -18,9 +18,9 @@ int main(){
 
     int M, N, K;
 
-    M = 37866;
-    N = 1065;
-    K = 14538;
+    M = 100;
+    N = 100;
+    K = 100;
 
     unsigned int sizeOfA = sizeof(float)*M*N;
     unsigned int sizeOfB = sizeof(float)*N*K;
@@ -145,7 +145,9 @@ __global__ void gpu_shared_matmul(float* a, float* b, float* c, int M, int N, in
 
 }
 
-void global_matmul()
+void global_matmul(){
+    
+}
 
 PYBIND11_MODULE(gpu_library, m)
 {
