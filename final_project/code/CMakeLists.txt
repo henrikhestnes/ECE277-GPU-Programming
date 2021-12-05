@@ -11,6 +11,8 @@ include_directories(
     ./pybind11/include
     )
 
+add_subdirectory(pybind11)
+
 link_directories(
     /usr/local/cuda/lib64
     )

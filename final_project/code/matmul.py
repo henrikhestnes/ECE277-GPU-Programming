@@ -40,18 +40,18 @@ def main():
 
     #     one_more_time = input("Do you want to calculate anoter matrix multiply?(y/n) ").lower()
     M, N, K = 1000, 1000, 1000
-    A = np.linspace(1.0, 100.0, M*N)
-    B = np.linspace(1.0, 100.0, N*K)
-    C_GPU = np.zeros(M*K)
+    A = np.random.rand(M, N)
+    B = np.random.rand(N, K)
+    C = np.zeros([M*K])
 
-    print(f"A: {A}\nB: {B}")
     start = time.perf_counter()
-    gpu_library.global_matrix_multiply(A, B, C_GPU, M, N, K)
+    C_GPU = gpu_library.global_matrix_multiply(A.reshape(M*N), B.reshape(N*K), C, M, N, K).reshape([M, K])
     end = time.perf_counter()
     print("GPU time: " + str(end-start))
     C_CPU = python_multiply(A, B)
-    print(f"C: {C_GPU}")
-    print("results match: " + str(np.allclose(C_GPU,C_CPU)))
+
+    print(f"Results match: {np.allclose(C_CPU,C_GPU)}")
+
 
 
 
