@@ -3,15 +3,12 @@ project(multiply)
 find_package(CUDA REQUIRED)
 find_package(PythonInterp 3.6 REQUIRED)
 find_package(PythonLibs 3.6 REQUIRED)
-find_package(Eigen3 REQUIRED)
 
 include_directories(
     ${PYTHON_INCLUDE_DIRS}
     ${EIGEN3_INCLUDE_DIR}
     ./pybind11/include
     )
-
-add_subdirectory(pybind11)
 
 link_directories(
     /usr/local/cuda/lib64

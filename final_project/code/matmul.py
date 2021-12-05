@@ -42,17 +42,23 @@ def main():
     M, N, K = 1000, 1000, 1000
     A = np.random.rand(M, N)
     B = np.random.rand(N, K)
-    C = np.zeros([M*K])
+    
+    start = time.perf_counter()
+    C_CPU_GLOBAL = np.zeros(M*K)
+    gpu_library.cpu_matrix_multiply(A.reshape(M*N), B.reshape(N*K), C_CPU_GLOBAL, M, N, K)
+    end = time.perf_counter()
+    print("CPU in C++ time: " + str(end-start))
 
     start = time.perf_counter()
-    C_GPU = gpu_library.global_matrix_multiply(A.reshape(M*N), B.reshape(N*K), C, M, N, K).reshape([M, K])
+    C_GPU = np.zeros(M*K)
+    gpu_library.global_matrix_multiply(A.reshape(M*N), B.reshape(N*K), C_GPU, M, N, K)
     end = time.perf_counter()
-    print("GPU time: " + str(end-start))
-    C_CPU = python_multiply(A, B)
+    print("GPU without shared memory time: " + str(end-start))
 
-    print(f"Results match: {np.allclose(C_CPU,C_GPU)}")
+    C_PYTHON = python_multiply(A, B)
 
-
+    print(f"\nCPU in C++ result correct: {np.allclose(C_CPU_GLOBAL.reshape(M, K),C_PYTHON)}")
+    print(f"GPU without shared memory correct: {np.allclose(C_GPU.reshape(M, K),C_PYTHON)}")
 
 
 main()
