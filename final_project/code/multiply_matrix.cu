@@ -11,7 +11,6 @@
 
 //*************************CUDA KERNEL CODE*************************
 
-
 __global__ void gpu_global_matmul(const double* a, const double* b, double* c, int M, int N, int K){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     int idy = threadIdx.y + blockIdx.y * blockDim.y;
@@ -38,7 +37,7 @@ __global__ void gpu_shared_matmul(const double* A, const double* B, double* C, i
 
     double C_val = 0;
 
-    for(int i = 0; i < BLOCK_SIZE; i++){
+    for(int i = 0; i < ceil((double)N/(double)BLOCK_SIZE); i++){
         __shared__ double A_shared[BLOCK_SIZE][BLOCK_SIZE];
         __shared__ double B_shared[BLOCK_SIZE][BLOCK_SIZE];
         
@@ -73,8 +72,9 @@ __global__ void gpu_shared_matmul(const double* A, const double* B, double* C, i
 }
 
 
-//*************************BINDED C++ CODE*************************
 
+
+//*************************BINDED C++ CODE*************************
 
 namespace py = pybind11;
 
@@ -100,6 +100,7 @@ void cpu_matmul(const py::array_t<double> a, const py::array_t<double> b, py::ar
         }
     }
 }
+
 
 enum class MEM_TYPE{
     SHARED,
@@ -177,20 +178,23 @@ void gpu_matmul(const py::array_t<const double> a, const py::array_t<const doubl
     }
 }
 
+
 void global_matmul(const py::array_t<const double> a, const py::array_t<const double> b, py::array_t<double> c, int M, int N, int K){
     gpu_matmul(a, b, c, M, N, K, MEM_TYPE::GLOBAL);
 }
+
 
 void shared_matmul(const py::array_t<const double> a, const py::array_t<const double> b, py::array_t<double> c, int M, int N, int K){
     gpu_matmul(a, b, c, M, N, K, MEM_TYPE::SHARED);
 }
 
 
+
+
 //*************************PYBIND11 BINDINGS*************************
 
-
 PYBIND11_MODULE(gpu_library, m){
-    m.doc() = "Plugin for doing GPU accelerated matrix multiply in python";
+    m.doc() = "Plugin for doing GPU accelerated matrix multiply in Python";
     m.def("cuda_global_matrix_multiply", &global_matmul);
     m.def("cuda_shared_matrix_multiply", &shared_matmul);
     m.def("cpu_matrix_multiply", &cpu_matmul);
