@@ -108,11 +108,15 @@ enum class MEM_TYPE{
 };
 
 
-void gpu_matmul(const py::array_t<const double> a, const py::array_t<const double> b, py::array_t<double> c, int M, int N, int K, MEM_TYPE memory){
-    unsigned int sizeOfA = sizeof(double)*M*N;
-    unsigned int sizeOfB = sizeof(double)*N*K;
-    unsigned int sizeOfC = sizeof(double)*M*K;
-    
+void gpu_matmul(const py::array_t<const double> a, const py::array_t<const double> b, py::array_t<double> c,
+                 int M, int N, int K, MEM_TYPE memory){
+                     
+    unsigned int size_of_A = sizeof(double)*M*N;
+    unsigned int size_of_B = sizeof(double)*N*K;
+    unsigned int size_of_C = sizeof(double)*M*K;
+
+    cudaError_t error;
+
     const pybind11::buffer_info h_buff_a = a.request();
     const pybind11::buffer_info h_buff_b = b.request();
     pybind11::buffer_info h_buff_c = c.request();
@@ -122,21 +126,19 @@ void gpu_matmul(const py::array_t<const double> a, const py::array_t<const doubl
     h_a = reinterpret_cast<double*>(h_buff_a.ptr);
     h_b = reinterpret_cast<double*>(h_buff_b.ptr);
     h_c = reinterpret_cast<double*>(h_buff_c.ptr);
-
-    cudaError_t error;
-
+    
     double *d_a, *d_b, *d_c;
-    error = cudaMalloc((void **)&d_a, sizeOfA);
-    error = cudaMalloc((void **)&d_b, sizeOfB);
-    error = cudaMalloc((void **)&d_c, sizeOfC);
+    error = cudaMalloc((void **)&d_a, size_of_A);
+    error = cudaMalloc((void **)&d_b, size_of_B);
+    error = cudaMalloc((void **)&d_c, size_of_C);
     
     if (error != cudaSuccess) {
         std::cout << "Error in cudaMalloc" << std::endl;
         throw std::runtime_error(cudaGetErrorString(error));
     }
 
-    error = cudaMemcpy(d_a, h_a, sizeOfA, cudaMemcpyHostToDevice);
-    error = cudaMemcpy(d_b, h_b, sizeOfB, cudaMemcpyHostToDevice);
+    error = cudaMemcpy(d_a, h_a, size_of_A, cudaMemcpyHostToDevice);
+    error = cudaMemcpy(d_b, h_b, size_of_B, cudaMemcpyHostToDevice);
 
     if (error != cudaSuccess) {
         std::cout << "Error in first cudaMemcpy" << std::endl;
@@ -161,7 +163,7 @@ void gpu_matmul(const py::array_t<const double> a, const py::array_t<const doubl
     }
 
 
-    error = cudaMemcpy(h_c, d_c, sizeOfC, cudaMemcpyDeviceToHost);
+    error = cudaMemcpy(h_c, d_c, size_of_C, cudaMemcpyDeviceToHost);
 
     if (error != cudaSuccess) {
         std::cout << "Error in last cudaMemcpy" << std::endl;
@@ -194,7 +196,7 @@ void shared_matmul(const py::array_t<const double> a, const py::array_t<const do
 //*************************PYBIND11 BINDINGS*************************
 
 PYBIND11_MODULE(gpu_library, m){
-    m.doc() = "Plugin for doing GPU accelerated matrix multiply in Python";
+    m.doc() = "Library for doing GPU accelerated matrix multiply in Python";
     m.def("cuda_global_matrix_multiply", &global_matmul);
     m.def("cuda_shared_matrix_multiply", &shared_matmul);
     m.def("cpu_matrix_multiply", &cpu_matmul);
